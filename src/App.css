@@ -1,0 +1,22 @@
+/* Ensure the body and html take full height */
+html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  /* Ensure the app takes full height */
+  #root, .App {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Full-screen canvas styling */
+  canvas {
+    display: block;
+    width: 100vw;  /* 100% of the viewport width */
+    height: 100vh; /* 100% of the viewport height */
+  }
+  
+
