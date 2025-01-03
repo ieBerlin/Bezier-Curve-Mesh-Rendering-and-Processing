@@ -1,9 +1,11 @@
+/* eslint-disable react/display-name */
 import React, { useState, useEffect, useRef, useMemo, useFra } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import { TransformControls, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { GLTFLoader } from "/node_modules/three/examples/jsm/loaders/GLTFLoader";
 import { DRACOLoader } from "/node_modules/three/examples/jsm/loaders/DRACOLoader";
+import BezierCurveRenderer from "./BezierCurveRenderer";
 
 const ModelRenderer = ({
   selectedModel,
@@ -15,7 +17,8 @@ const ModelRenderer = ({
   const [selectedModelIndex, setSelectedModelIndex] = useState(null);
   const [transformMode, setTransformMode] = useState("translate");
   const [selectedBezierCurves, setSelectedBezierCurves] = useState([]);
-  const [bezierCurveTransformMode, setBezierCurveTransformMode] = useState("translate");
+  const [bezierCurveTransformMode, setBezierCurveTransformMode] =
+    useState("translate");
   const { camera, gl } = useThree();
   const transformRef = useRef();
 
@@ -92,9 +95,8 @@ const ModelRenderer = ({
               bezierCurveMeshes,
             },
           ]);
-          
+
           // Callback to parent component
-      
         },
         undefined,
         (error) => {
@@ -111,7 +113,6 @@ const ModelRenderer = ({
     return box1.intersectsBox(box2);
   };
 
-  
   useFrame(() => {
     // Collision detection for all models
     let isAnyCollision = false;
@@ -185,15 +186,11 @@ const ModelRenderer = ({
     }
   });
 
-
-
   // Handle model click and selection
   const handleModelClick = (index, event) => {
     event.stopPropagation();
     setSelectedModelIndex(index);
   };
-
-  
 
   // Handle model movement
   const handleModelMove = (event) => {
@@ -221,7 +218,7 @@ const ModelRenderer = ({
       setSelectedModelIndex(null);
       onTransformUIChange({
         showTransformUI: false,
-        showTransformControls: false
+        showTransformControls: false,
       });
     }
   };
@@ -404,9 +401,6 @@ const ModelRenderer = ({
     handleBezierCurveSideChange,
   ]);
 
-  
-
-
   return (
     <>
       {loadedModels.map((modelData, modelIndex) => (
@@ -419,24 +413,13 @@ const ModelRenderer = ({
           >
             {/* Render BézierCurve meshes with selection highlight */}
             {modelData.bezierCurveMeshes.map((bezierCurveMesh, curveIndex) => (
-              <primitive
-                key={`bezier-curve-${modelIndex}-${curveIndex}`}
-                object={bezierCurveMesh}
-                onClick={(event) =>
-                  handleBezierCurveClick(modelIndex, bezierCurveMesh, event)
-                }
-              >
-                {selectedBezierCurves.some(
-                  (item) =>
-                    item.modelIndex === modelIndex &&
-                    item.bezierCurveMesh === bezierCurveMesh
-                ) && (
-                  <lineSegments>
-                    <edgesGeometry args={[bezierCurveMesh.geometry]} />
-                    <lineBasicMaterial color="yellow" linewidth={2} />
-                  </lineSegments>
-                )}
-              </primitive>
+              <BezierCurveRenderer
+                bezierCurveMesh={bezierCurveMesh}
+                curveIndex={curveIndex}
+                modelIndex={modelIndex}
+                selectedBezierCurves={selectedBezierCurves}
+                handleBezierCurveClick={handleBezierCurveClick}
+              />
             ))}
           </primitive>
 

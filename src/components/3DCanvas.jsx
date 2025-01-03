@@ -210,7 +210,7 @@ const ThreeDCanvas = () => {
       </div>
       <Canvas camera={{ position: [0, 2, 5], fov: 75 }}>
         <Controls controlsEnabled={controlsEnabled} />
-        <CubeTextureLoader />
+        {/* <CubeTextureLoader /> */}
         <Axes />
         <Grid />
         <Playground

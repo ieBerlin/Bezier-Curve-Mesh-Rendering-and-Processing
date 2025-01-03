@@ -8,7 +8,9 @@ const SafeZoneDrawing = ({
   drawingMode,
   clearAllDesigns,
 }) => {
+  console.log("executed SafeZoneDrawing");
   const [points, setPoints] = useState([]);
+  console.log(points);
   const [isShapeClosed, setIsShapeClosed] = useState(false);
   const [allDrawings, setAllDrawings] = useState([]);
   const [selectedShapeIndices, setSelectedShapeIndices] = useState([]);
