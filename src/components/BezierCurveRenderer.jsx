@@ -4,6 +4,8 @@ import { combineLineAndShape } from "../MeshProcessing/combineLineAndShape";
 import { retrieveComponents } from "../assets/Utils/retrieveComponents";
 import { mergeClusters } from "../MeshProcessing/mergeClusters";
 import { generateVertexSpheres } from "./../MeshProcessing/generateVertexSpheres";
+import GroupedShapes from "./GroupedShapes";
+import FirstShapeRenderer from "./GroupedShapes";
 
 function BezierCurveRenderer({
   modelIndex,
@@ -19,28 +21,24 @@ function BezierCurveRenderer({
 
   const geometry = bezierCurveMesh.geometry;
   const vertices = geometry.attributes.position.array;
-
   const vertexSpheres = generateVertexSpheres(vertices);
 
   const highResVertices = refineVertexResolution(vertexSpheres);
   const meshItems = retrieveComponents(highResVertices);
   const mergedClusters = mergeClusters(meshItems);
-  const combinedItems = combineLineAndShape(meshItems);
-
-  const firstCluster =
-    meshItems[4]?.clusters.map((item) => {
-      return new THREE.Vector3(item.x, item.y || 0, item.z);
-    }) || [];
-
-  console.log(mergedClusters);
+  const shapes = mergedClusters?.filter((shape) => shape.partId != "_line");
+  // const firstCluster =
+  //   mergedClusters[0]?.clusters.map((item) => {
+  //     return new THREE.Vector3(item.x, item.y || 0, item.z);
+  //   }) || [];
 
   return (
     <primitive
       key={`bezier-curve-${modelIndex}-${curveIndex}`}
       object={bezierCurveMesh}
-      onClick={(event) =>
-        handleBezierCurveClick(modelIndex, bezierCurveMesh, event)
-      }
+      // onClick={(event) =>
+      //   handleBezierCurveClick(modelIndex, bezierCurveMesh, event)
+      // }
     >
       {isSelected && (
         <lineSegments>
@@ -49,16 +47,10 @@ function BezierCurveRenderer({
         </lineSegments>
       )}
 
-      {firstCluster.map((vertex, index) => (
-        <mesh key={index} position={vertex}>
-          <sphereGeometry args={[0.1, 8, 8]} />
-          <meshBasicMaterial color="red" />
-        </mesh>
+      {/* Render the first shape using the new component */}
+      {shapes?.map((item, index) => (
+        <FirstShapeRenderer KEY={item.partId + index} shape={item} />
       ))}
-
-      <mesh>
-        <meshBasicMaterial color="blue" side={THREE.DoubleSide} />
-      </mesh>
     </primitive>
   );
 }

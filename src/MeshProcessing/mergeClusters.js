@@ -1,52 +1,27 @@
 export function mergeClusters(parts) {
-  function checkLine(clusters, threshold = 0.2) {
-    let totalX = 0;
-    let totalZ = 0;
-    let totalCount = 0;
+  function checkLine(clusters, threshold = 0.12) {
+    const total = clusters.reduce(
+      (acc, point) => {
+        acc.x += point.x;
+        acc.z += point.z;
+        acc.count++;
+        return acc;
+      },
+      { x: 0, z: 0, count: 0 }
+    );
 
-    clusters.forEach((point) => {
-      totalX += Math.abs(point.x);
-      totalZ += Math.abs(point.z);
-      totalCount++;
-    });
+    const avgX = total.x / total.count;
+    const avgZ = total.z / total.count;
 
-    let avgX = totalX / totalCount;
-    let avgZ = totalZ / totalCount;
-    let isStableX = true;
-    let isStableZ = true;
-
-    clusters.forEach((point) => {
-      if (Math.abs(Math.abs(point.x) - avgX) > threshold) {
-        isStableX = false;
-      }
-      if (Math.abs(Math.abs(point.z) - avgZ) > threshold) {
-        isStableZ = false;
-      }
-    });
-
-    return isStableX || isStableZ;
+    return clusters.every(
+      (point) =>
+        Math.abs(point.x - avgX) <= threshold ||
+        Math.abs(point.z - avgZ) <= threshold
+    );
   }
 
-  let resultParts = [];
-
-  parts.forEach((item) => {
-    let lineClusters = [];
-    let nonLineClusters = [];
-
-    if (checkLine(item.clusters)) {
-      resultParts.push({
-        ...item,
-        partId: "_line",
-      });
-      lineClusters.push(item);
-    } else {
-      resultParts.push({
-        ...item,
-        partId: "_shaped",
-      });
-      nonLineClusters.push(item);
-    }
+  return parts.map((item) => {
+    const partId = checkLine(item.clusters) ? "_line" : "_shaped";
+    return { ...item, partId };
   });
-
-  return resultParts;
 }
