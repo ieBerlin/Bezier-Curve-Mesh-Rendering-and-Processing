@@ -1,36 +1,92 @@
-export function refineVertexResolution(vertices, resolution = 3) {
-  if (resolution < 1) throw new Error("Resolution must be at least 1.");
-
-  const refinedVertices = [];
-  for (let i = 0; i < vertices.length - 1; i++) {
-    const p0 = vertices[i];
-    const p1 = vertices[i + 1];
-
-    for (let j = 0; j <= resolution; j++) {
-      const t = j / resolution;
-      const interpolatedVertex = p0.clone().lerp(p1, t);
-      refinedVertices.push(interpolatedVertex);
-    }
-  }
-  return refinedVertices;
-}
-
 export function retrieveComponents(vertices) {
   const components = [];
   const explored = new Set();
 
+  // Optimized areClustersEquivalent function that handles complex shapes
   function areClustersEquivalent(cluster1, cluster2, tolerance = 0.01) {
     if (cluster1.length !== cluster2.length) return false;
-    const sortedCluster1 = cluster1.slice().sort((a, b) => a.x - b.x);
-    const sortedCluster2 = cluster2.slice().sort((a, b) => a.x - b.x);
 
-    return sortedCluster1.every((point, index) => {
-      const dx = Math.abs(point.x - sortedCluster2[index].x);
-      const dz = Math.abs(point.z - sortedCluster2[index].z);
-      return dx < tolerance && dz < tolerance;
-    });
+    // Perform convex hulls-based comparison for complex shapes
+    const hull1 = getConvexHull(cluster1);
+    const hull2 = getConvexHull(cluster2);
+
+    // Compare the convex hulls
+    if (!arePolygonsSimilar(hull1, hull2, tolerance)) return false;
+
+    return true;
   }
 
+  // Function to get the convex hull of a set of points
+  function getConvexHull(points) {
+    // Sort points lexicographically (by x, then by y)
+    points = points.slice().sort((a, b) => a.x - b.x || a.z - b.z);
+
+    // Build the lower hull
+    const lower = [];
+    for (const point of points) {
+      while (lower.length >= 2 && crossProduct(lower[lower.length - 2], lower[lower.length - 1], point) <= 0) {
+        lower.pop();
+      }
+      lower.push(point);
+    }
+
+    // Build the upper hull
+    const upper = [];
+    for (let i = points.length - 1; i >= 0; i--) {
+      const point = points[i];
+      while (upper.length >= 2 && crossProduct(upper[upper.length - 2], upper[upper.length - 1], point) <= 0) {
+        upper.pop();
+      }
+      upper.push(point);
+    }
+
+    // Remove the last point of each half because it's repeated at the beginning of the other half
+    lower.pop();
+    upper.pop();
+
+    return lower.concat(upper); // Combine lower and upper hull to get the convex hull
+  }
+
+  // Cross product of two vectors
+  function crossProduct(o, a, b) {
+    return (a.x - o.x) * (b.z - o.z) - (a.z - o.z) * (b.x - o.x);
+  }
+
+  // Function to check if two polygons (hulls) are similar
+  function arePolygonsSimilar(hull1, hull2, tolerance) {
+    // Check if they have similar vertices, considering rotation/translation
+    if (hull1.length !== hull2.length) return false;
+
+    // Try rotating and matching the hulls
+    for (let i = 0; i < hull1.length; i++) {
+      let match = true;
+      for (let j = 0; j < hull1.length; j++) {
+        const dx = Math.abs(hull1[(i + j) % hull1.length].x - hull2[j].x);
+        const dz = Math.abs(hull1[(i + j) % hull1.length].z - hull2[j].z);
+        if (dx > tolerance || dz > tolerance) {
+          match = false;
+          break;
+        }
+      }
+      if (match) return true; // Found a matching rotation
+    }
+
+    return false; // No match found
+  }
+
+  // Function to find the starting point (the leftmost point)
+  function findStartingPoint(cluster) {
+    // Find the leftmost point based on the smallest x-coordinate (or any other criteria)
+    let startingPoint = cluster[0];
+    for (let i = 1; i < cluster.length; i++) {
+      if (cluster[i].x < startingPoint.x) {
+        startingPoint = cluster[i];
+      }
+    }
+    return startingPoint;
+  }
+
+  // DBSCAN clustering
   function groupPointsDBSCAN(points, epsilon = 0.15, minPoints = 3) {
     const groups = [];
     const outliers = [];
@@ -76,10 +132,16 @@ export function retrieveComponents(vertices) {
     return groups;
   }
 
+  // Group the points using DBSCAN
   const groups = groupPointsDBSCAN(vertices);
 
+  // Iterate over the groups and combine similar clusters
   groups.forEach((group, i) => {
     if (explored.has(i)) return;
+
+    // Identify the starting point of the shape using findStartingPoint
+    const startingPoint = findStartingPoint(group);
+
     const currentComponent = [group];
 
     for (let j = i + 1; j < groups.length; j++) {
@@ -89,12 +151,10 @@ export function retrieveComponents(vertices) {
       }
     }
 
-    components.push(currentComponent);
+    // Add the current component to the results
+    components.push({ partId: i + 1, startingPoint, clusters: currentComponent.flat() });
     explored.add(i);
   });
 
-  return components.map((component, index) => ({
-    partId: index + 1,
-    clusters: component.flat(),
-  }));
+  return components;
 }

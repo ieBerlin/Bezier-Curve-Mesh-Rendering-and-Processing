@@ -1,4 +1,4 @@
-export function refineVertexResolution(vertices, resolution = 3) {
+export function refineVertexResolution(vertices, resolution = 2) {
   const refinedVertices = [];
   for (let i = 0; i < vertices.length - 1; i++) {
     const p0 = vertices[i];

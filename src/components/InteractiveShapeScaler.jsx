@@ -2,20 +2,37 @@ import React, { useState, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { Html } from "@react-three/drei";
 
-function FirstShapeRenderer({ shape }) {
+function InteractiveShapeScaler({ shape }) {
+  const [meshInitialPosition, setMeshInitialPosition] = useState(
+    new THREE.Vector3()
+  );
   const [xScale, setXScale] = useState(1); // Initial scale for X-axis
   const [zScale, setZScale] = useState(1); // Initial scale for Z-axis
   const [isShapeActive, setIsShapeActive] = useState(false); // Track if shape is active
   const containerRef = useRef();
+  const [offsetOption, setOffsetOption] = useState("none");
+
+  const maxX = shape.maxX;
+  const maxZ = shape.maxZ;
+  const minX = shape.minX;
+  const minZ = shape.minZ;
+
+  const handleOffsetChange = (e) => {
+    setOffsetOption(e.target.value);
+  };
 
   // Extract clusters from the first shape
   const clusters = shape?.clusters || [];
-  const sideId = shape?.sideId || "top-down";
 
-  // Convert the clusters into Vector3 points using x, y, and z values
+  // Convert the clusters into Vector3 points using x, y (0), and z values
   const points = clusters.map(
-    (item) => new THREE.Vector3(item.x, item.y, item.z)
+    (item) => new THREE.Vector3(item.x, 0.001, item.z)
   );
+
+  // Close the shape by appending the first point at the end
+  if (points.length > 2) {
+    points.push(points[0]);
+  }
 
   // Create a buffer geometry to represent the shape
   const geometry = new THREE.BufferGeometry();
@@ -31,12 +48,11 @@ function FirstShapeRenderer({ shape }) {
   // Set the vertices attribute on the geometry
   geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
 
-  // Create faces to "fill" the shape. We will create triangles by connecting adjacent points.
+  // Create faces to "fill" the shape using a triangulation approach
   const indices = [];
   for (let i = 1; i < points.length - 1; i++) {
     indices.push(0, i, i + 1);
   }
-  indices.push(0, points.length - 2, points.length - 1);
 
   geometry.setIndex(indices);
 
@@ -44,7 +60,7 @@ function FirstShapeRenderer({ shape }) {
   const material = new THREE.MeshBasicMaterial({
     color: "blue",
     side: THREE.DoubleSide,
-    wireframe: true,
+    wireframe: false,
   });
 
   // Create the shape mesh
@@ -60,37 +76,47 @@ function FirstShapeRenderer({ shape }) {
   // Recalculate the bounding box after scaling
   boundingBox = new THREE.Box3().setFromObject(mesh);
 
-  // For "top-down" scaling, starting from the initial X position (left to right)
-  if (sideId === "top-down") {
-    // Get the initial X position (left side) of the shape before scaling
-    const initialXPosition = boundingBox.min.x;
-
-    // Offset the position so the shape starts scaling from the initial X position
-    mesh.position.x = initialXPosition; // This keeps the left side fixed
-
-    // Now apply the scaling (it will grow from left to right)
-  }
-
-  // For "left-right" scaling (optional, for consistency or other directions)
-  else {
-    // Get the initial Z position (left side) of the bounding box
-    const initialZPosition = boundingBox.min.z;
-
-    // Offset the position so the shape starts scaling from the initial Z position
-    mesh.position.z = initialZPosition;
-  }
-
   // Recalculate the bounding box and center the mesh after scaling
   const newBoundingBox = new THREE.Box3().setFromObject(mesh);
   const newCenter = newBoundingBox.getCenter(new THREE.Vector3());
 
-  // Offset the mesh to keep it centered after scaling
-  mesh.position.sub(newCenter).add(center);
+  let scaledOffset = 0;
+
+  // Get the updated bounding box after scaling
+  const scaledBoundingBox = new THREE.Box3().setFromObject(mesh);
+  switch (offsetOption) {
+    case "offset-x-minus":
+      scaledOffset = scaledBoundingBox.max.x - maxX; // Difference in maxX
+      mesh.position.x -= scaledOffset; // Adjust position to match original maxX
+      break;
+
+    case "offset-x-plus":
+      scaledOffset = scaledBoundingBox.min.x - minX;
+      mesh.position.x -= scaledOffset; // Adjust position to match original minX
+      break;
+    case "offset-z-minus":
+      scaledOffset = scaledBoundingBox.min.z - minZ; // Difference in minZ
+      mesh.position.z -= scaledOffset; // Adjust position to match original minZ
+      break;
+    case "offset-z-plus":
+      scaledOffset = scaledBoundingBox.max.z - maxZ; // Difference in maxZ
+      mesh.position.z -= scaledOffset; // Adjust position to match original maxZ
+      break;
+    default:
+      // Center alignment (if needed)
+      mesh.position.sub(newCenter).add(center);
+      break;
+  }
 
   // Handle click event on the shape
   const handleShapeClick = () => {
     setIsShapeActive(true); // Activate shape
   };
+
+  useEffect(() => {
+    // Clone the mesh's position and store it in the state
+    setMeshInitialPosition(mesh.position.clone());
+  }, [mesh.position.x, mesh.position.z]);
 
   // Handle click outside of the shape/UI
   const handleClickOutside = (event) => {
@@ -171,6 +197,40 @@ function FirstShapeRenderer({ shape }) {
                 }}
               />
             </div>
+            <div
+              style={{ marginBottom: "15px", fontFamily: "Arial, sans-serif" }}
+            >
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "5px",
+                  fontWeight: "bold",
+                  color: "#333",
+                }}
+              >
+                Offset:
+              </label>
+              <select
+                onChange={handleOffsetChange}
+                value={offsetOption}
+                style={{
+                  padding: "8px",
+                  fontSize: "14px",
+                  borderRadius: "5px",
+                  border: "1px solid #ccc",
+                  width: "100%",
+                  maxWidth: "200px",
+                  outline: "none",
+                  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)",
+                }}
+              >
+                <option value="none">None</option>
+                <option value="offset-x-minus">Offset X Minus</option>
+                <option value="offset-x-plus">Offset X Plus</option>
+                <option value="offset-z-minus">Offset Z Minus</option>
+                <option value="offset-z-plus">Offset Z Plus</option>
+              </select>
+            </div>
           </div>
         </Html>
       )}
@@ -178,4 +238,4 @@ function FirstShapeRenderer({ shape }) {
   );
 }
 
-export default FirstShapeRenderer;
+export default InteractiveShapeScaler;

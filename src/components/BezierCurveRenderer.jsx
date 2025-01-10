@@ -1,11 +1,9 @@
 import * as THREE from "three";
 import { refineVertexResolution } from "../assets/Utils/refineVertexResolution";
-import { combineLineAndShape } from "../MeshProcessing/combineLineAndShape";
 import { retrieveComponents } from "../assets/Utils/retrieveComponents";
 import { mergeClusters } from "../MeshProcessing/mergeClusters";
 import { generateVertexSpheres } from "./../MeshProcessing/generateVertexSpheres";
-import GroupedShapes from "./GroupedShapes";
-import FirstShapeRenderer from "./GroupedShapes";
+import InteractiveShapeScaler from "./InteractiveShapeScaler";
 
 function BezierCurveRenderer({
   modelIndex,
@@ -27,6 +25,7 @@ function BezierCurveRenderer({
   const meshItems = retrieveComponents(highResVertices);
   const mergedClusters = mergeClusters(meshItems);
   const shapes = mergedClusters?.filter((shape) => shape.partId != "_line");
+
   // const firstCluster =
   //   mergedClusters[0]?.clusters.map((item) => {
   //     return new THREE.Vector3(item.x, item.y || 0, item.z);
@@ -49,7 +48,7 @@ function BezierCurveRenderer({
 
       {/* Render the first shape using the new component */}
       {shapes?.map((item, index) => (
-        <FirstShapeRenderer KEY={item.partId + index} shape={item} />
+        <InteractiveShapeScaler KEY={item.partId + index} shape={item} />
       ))}
     </primitive>
   );
