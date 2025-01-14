@@ -11,6 +11,10 @@ function InteractiveShapeScaler({ shape }) {
   const [isShapeActive, setIsShapeActive] = useState(false); // Track if shape is active
   const containerRef = useRef();
   const [offsetOption, setOffsetOption] = useState("none");
+  const [shapeColor, setShapeColor] = useState("blue");
+  const handleColorToggle = () => {
+    setShapeColor((prevColor) => (prevColor === "blue" ? "black" : "blue"));
+  };
 
   const maxX = shape.maxX;
   const maxZ = shape.maxZ;
@@ -58,7 +62,7 @@ function InteractiveShapeScaler({ shape }) {
 
   // Create a material to visualize the mesh
   const material = new THREE.MeshBasicMaterial({
-    color: "blue",
+    color: shapeColor === "blue" ? "blue" : "black",
     side: THREE.DoubleSide,
     wireframe: false,
   });
@@ -230,6 +234,20 @@ function InteractiveShapeScaler({ shape }) {
                 <option value="offset-z-minus">Offset Z Minus</option>
                 <option value="offset-z-plus">Offset Z Plus</option>
               </select>
+              <button
+                onClick={handleColorToggle}
+                style={{
+                  margin: "10px auto",
+                  padding: "5px 10px",
+                  backgroundColor: "#007BFF",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                }}
+              >
+                Toggle Color
+              </button>
             </div>
           </div>
         </Html>

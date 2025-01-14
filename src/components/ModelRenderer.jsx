@@ -1,5 +1,11 @@
 /* eslint-disable react/display-name */
-import React, { useState, useEffect, useRef, useMemo, useFra } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import { TransformControls, Html } from "@react-three/drei";
 import * as THREE from "three";
@@ -348,6 +354,58 @@ const ModelRenderer = ({
     );
   }, [handleTransformModeChange, handleDeleteModel]);
 
+  function MeshSettings({ settings, handleSettingChange }) {
+    return (
+      <Html
+        style={{
+          bottom: "-150px",
+          left: "615px",
+          position: "fixed",
+          backgroundColor: "rgba(255, 255, 255, 0.8)",
+          padding: "10px",
+          borderRadius: "5px",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+          zIndex: 1000,
+        }}
+      >
+        <h2>Mesh Settings</h2>
+        <div>
+          <label className="block text-white text-sm font-semibold mb-2">
+            Epsilon: {settings.epsilon.toFixed(2)}
+            <input
+              className="w-full mt-1 p-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              type="number"
+              min="0.01"
+              max="1.0"
+              step="0.01"
+              value={settings.epsilon}
+              onChange={(e) =>
+                handleSettingChange("epsilon", parseFloat(e.target.value), e)
+              }
+            />
+          </label>
+        </div>
+
+        <div>
+          <label className="block text-white text-sm font-semibold mb-2">
+            Min Spacing: {settings.minSpacing.toFixed(2)}
+            <input
+              className="w-full mt-1 p-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              type="number"
+              min="0.01"
+              max="1.0"
+              step="0.01"
+              value={settings.minSpacing}
+              onChange={(e) =>
+                handleSettingChange("minSpacing", parseFloat(e.target.value), e)
+              }
+            />
+          </label>
+        </div>
+      </Html>
+    );
+  }
+
   // BézierCurve Transform UI
   const BezierCurveTransformUI = useMemo(() => {
     return () => (
@@ -400,6 +458,20 @@ const ModelRenderer = ({
     handleDeleteBezierCurve,
     handleBezierCurveSideChange,
   ]);
+  const [settings, setSettings] = useState({
+    epsilon: 0.15,
+    minSpacing: 0.5,
+  });
+  const [isMeshOptionsVisible, setMeshOptionsVisible] = useState(false);
+  const toggleMeshOptionsVisibility = useCallback(() => {
+    setMeshOptionsVisible((prev) => !prev); // Toggles the visibility state
+  }, []);
+  function handleSettingChange(key, value, event) {
+    setSettings((prevSettings) => ({
+      ...prevSettings,
+      [key]: value,
+    }));
+  }
 
   return (
     <>
@@ -414,6 +486,8 @@ const ModelRenderer = ({
             {/* Render BézierCurve meshes with selection highlight */}
             {modelData.bezierCurveMeshes.map((bezierCurveMesh, curveIndex) => (
               <BezierCurveRenderer
+                settings={settings}
+                onToggleMeshOptionsVisibility={toggleMeshOptionsVisibility}
                 bezierCurveMesh={bezierCurveMesh}
                 curveIndex={curveIndex}
                 modelIndex={modelIndex}
@@ -455,6 +529,12 @@ const ModelRenderer = ({
 
       {/* Show Transform UI when appropriate */}
       {selectedBezierCurves.length > 0 && <BezierCurveTransformUI />}
+      {/* {selectedBezierCurves.length > 0 && isMeshOptionsVisible && ( */}
+      <MeshSettings
+        settings={settings}
+        handleSettingChange={handleSettingChange}
+      />
+      {/* )} */}
       {showTransformUI && <TransformUI />}
     </>
   );
